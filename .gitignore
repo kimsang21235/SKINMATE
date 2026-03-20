@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+instance/
+uploads/*
+!uploads/.gitkeep
+skinmate/static/uploads_temp/*
+!skinmate/static/uploads_temp/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

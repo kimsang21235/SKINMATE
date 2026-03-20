@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}분석 결과 및 추천 - SKINMATE{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/recommendations.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="prescription-container">
+    {% if recommendations and recommendations.user_info %}
+    <div class="user-info-card">
+         <button id="toggleInfoBtn" class="info-toggle-button">⚠️안내사항</button>
+        <img src="{{ url_for('static', filename='images/logo_icon_img.jpg') }}" alt="SKINMATE Logo" class="prescription-logo">
+        <h2>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspAI 피부 분석 결과&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</h2>
+        <p class="username">&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<span class="rt_user_name">{{ recommendations.user_info.username }}</span>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<span class="rt_user_name_nim">님</span></p>
+        <p class="skin-type-label">피부 타입은&nbsp;&nbsp;&nbsp;<span class="skin-type-highlight">{{ skin_type }}</span>&nbsp;&nbsp;&nbsp;입니다</p>
+        <div class="my-type-icon">
+            {% if scores %}
+                <span class="score-item">수분 <img src="{{ url_for('static', filename='images/' + get_face_icon(scores.moisture)) }}" alt="수분 점수 아이콘" class="score-face-icon"></span>
+                <span class="score-item">탄력 <img src="{{ url_for('static', filename='images/' + get_face_icon(scores.elasticity)) }}" alt="탄력 점수 아이콘" class="score-face-icon"></span>
+                <span class="score-item">주름 <img src="{{ url_for('static', filename='images/' + get_face_icon(scores.wrinkle)) }}" alt="주름 점수 아이콘" class="score-face-icon"></span>
+            {% endif %}
+        </div>
+        <button id="showResultModalBtn" class="result-button-recommend">🔍 자세히 보기</button>
+        <p class="prescription-date">
+            <span class="date-num">{{ recommendations.user_info.date_info.year }}</span><span class="date-unit">년</span>
+            <span class="date-num">{{ recommendations.user_info.date_info.month }}</span><span class="date-unit">월</span>
+            <span class="date-num">{{ recommendations.user_info.date_info.day }}</span><span class="date-unit">일</span>
+        </p>
+        <p class="drugstore-name">&nbsp&nbsp&nbsp스킨메이트연구소&nbsp&nbsp&nbsp</p>
+        <p class="all-dirtk"><span class="dirtk">연구원</span>&nbsp&nbsp&nbsp&nbsp&nbsp<span class="dirtkdlfma">김피부</span></p>
+        <p class="address-name">경상북도 안동시 경동로 1375</p>
+        <p class="phone-num">TEL. 054)123-4567</p>
+        <div class="next-button">
+        <a href="{{ url_for('routines') }}" class="product-link">Next !</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="no-products">
+        <h3>아직 분석 결과가 없습니다.</h3>
+        <p>피부 분석을 먼저 진행해주세요.</p>
+        <a href="/analysis" class="product-link">분석하기</a>
+    </div>
+    {% endif %}
+
+    {% if recommendations %}
+    <!-- The Modal for Info -->
+    <div id="infoModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button info-close">&times;</span>
+        <div class="info-section">
+            <div class="qa-section">
+                <h4>💖Only! 나만을 위한 추천!</h4>
+                <p>SKINMATE는 그냥 인기순으로 제품을 추천하지 않아요.<br>피부 고민과 피부 타입, 그리고 계절에 맞는 제형까지 꼼꼼하게 따져<br>내 피부에 가장 잘 맞는 제품을 알려드려요.</p>
+            </div>
+            <div class="tip-section">
+                <h4>💡피부 관리 팁</h4>
+                <p>피부는 꾸준히 관리할 때 더 좋아져요.<br>30일 뒤에 다시 분석해서 어떻게 달라졌는지 꼭 확인해보세요!</p>
+            </div>
+            <div class="disclaimer-section">
+                <h4>❗사용 시 유의사항</h4>
+                <p>본 추천은 AI 기반 진단 결과로, 실제 효능은 개인의 피부 상태 및 반응에 따라 다를 수 있어요.<br>특정 성분에 알레르기가 있으신 경우 제품 전성분을 반드시 확인해주세요.</p>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+</div>
+
+<!-- The Modal for Detailed Results -->
+<div id="resultModal" class="modal">
+  <div class="modal-content">
+    <span class="close-button">&times;</span>
+    <div class="all-result-container">
+        <h2>AI 피부 분석 결과 (상세)</h2>
+        <div class="chart-container">
+            <div id="gauge-chart" class="chart-item"></div>
+            <div id="segmented-bars-container" class="chart-item">
+                <div class="bar-container">
+                    <span class="bar-label">수분</span>
+                    <div class="segmented-bar" data-score="{{ scores.moisture | default(0, true) }}">
+                        <div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label">탄력</span>
+                    <div class="segmented-bar" data-score="{{ scores.elasticity | default(0, true) }}">
+                        <div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label">주름</span>
+                    <div class="segmented-bar" data-score="{{ scores.wrinkle | default(0, true) }}">
+                        <div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div><div class="segment"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-spacer"></div>
+        </div>
+        <div class="result-details-box">
+            <div class="result-description">
+                 <p>{{ result_summary | safe }}</p>
+            </div>
+            <div class="button-group">
+                <a href="{{ url_for('analysis') }}" class="result-button-retry">다시 테스트하기</a>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Modal 1: Detailed Results --- 
+        const resultModal = document.getElementById('resultModal');
+        const showResultBtn = document.getElementById('showResultModalBtn');
+        const resultCloseSpan = document.querySelector('#resultModal .close-button');
+        let chartsRendered = false;
+
+        function renderCharts() {
+            if (chartsRendered) return;
+            var mainScore = {{ main_score | default(0) }};
+            var gaugeOptions = {
+                series: [mainScore],
+                chart: { height: 350, type: 'radialBar' },
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -135,
+                        endAngle: 135,
+                        hollow: { margin: 0, size: '70%', background: '#fff' },
+                        track: { background: '#f2f2f2', strokeWidth: '67%' },
+                        dataLabels: {
+                            name: { show: true, offsetY: -25, fontSize: '16px', color: '#888', formatter: function(val) { return "Total Score" } },
+                            value: { offsetY: 30, fontSize: '4.2rem', color: '#1f1f1fff', formatter: function (val) { return val.toFixed(0); } }
+                        }
+                    }
+                },
+                labels: ['종합 점수'],
+                colors: ['#D8AAAA'],
+                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', shadeIntensity: 0.5, gradientToColors: ['#C79999'], inverseColors: true, opacityFrom: 1, opacityTo: 1, stops: [0, 100] } },
+                stroke: { lineCap: 'round' },
+            };
+            var gaugeChart = new ApexCharts(document.querySelector("#gauge-chart"), gaugeOptions);
+            gaugeChart.render();
+
+            document.querySelectorAll('.segmented-bar').forEach(bar => {
+                const score = parseFloat(bar.dataset.score);
+                let level = 0;
+                if (score < 20) level = 1; else if (score < 40) level = 2; else if (score < 60) level = 3; else if (score < 80) level = 4; else level = 5;
+                const segments = bar.querySelectorAll('.segment');
+                for (let i = 0; i < level; i++) {
+                    if(segments[i]) { segments[i].classList.add('filled'); }
+                }
+            });
+            chartsRendered = true;
+        }
+
+        if (showResultBtn) {
+            showResultBtn.onclick = function() {
+              resultModal.style.display = "block";
+              renderCharts();
+            }
+        }
+        if (resultCloseSpan) {
+            resultCloseSpan.onclick = function() {
+              resultModal.style.display = "none";
+            }
+        }
+
+        // --- Modal 2: Info/Guide ---
+        const infoModal = document.getElementById('infoModal');
+        const showInfoBtn = document.getElementById('toggleInfoBtn');
+        const infoCloseSpan = document.querySelector('#infoModal .close-button');
+
+        if (infoModal) { // Show modal on page load
+            infoModal.style.display = "block";
+        }
+
+        if (showInfoBtn) {
+            showInfoBtn.onclick = function() {
+              infoModal.style.display = "block";
+            }
+        }
+        if (infoCloseSpan) {
+            infoCloseSpan.onclick = function() {
+              infoModal.style.display = "none";
+            }
+        }
+
+        // --- General Modal Handling ---
+        window.onclick = function(event) {
+          if (event.target == resultModal) {
+            resultModal.style.display = "none";
+          }
+          if (event.target == infoModal) {
+            infoModal.style.display = "none";
+          }
+        }
+    });
+</script>
+{% endblock %}

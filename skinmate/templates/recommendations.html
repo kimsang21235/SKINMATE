@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}1:1 맞춤 추천 - SKINMATE{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/recommendations.css') }}">
+<style>
+    /* 모달 스타일 */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.6); 
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; 
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 10px;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .close-button {
+        color: #aaa;
+        position: absolute;
+        top: 10px;
+        right: 25px;
+        font-size: 35px;
+        font-weight: bold;
+    }
+    .close-button:hover,
+    .close-button:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* 유저 정보 카드 스타일 */
+    .user-info-card {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .user-info-card h3 {
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 15px;
+    }
+    .user-info-card p {
+        font-size: 16px;
+        color: #555;
+        line-height: 1.6;
+    }
+    .user-info-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+    }
+    .user-info-card li {
+        font-size: 18px;
+        color: #444;
+        margin-bottom: 10px;
+    }
+
+    /* 결과보기/다시하기 버튼 스타일 */
+    .result-button-container {
+        text-align: center;
+        margin: 20px 0;
+    }
+    .result-button {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #6a0dad;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 16px;
+    }
+    .result-button:hover {
+        background-color: #4a0a8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="prescription-container">
+
+    <div class="result-button-container">
+        <button id="showResultModalBtn" class="result-button">AI 피부 분석 결과 보기</button>
+    </div>
+
+    <div class="routine-tab-buttons">
+        <button class="tab-button active" onclick="showRoutine('morning', this)">
+            <img src="{{ url_for('static', filename='images/morning_icon.png') }}" alt="Morning Routine">
+            <span>모닝 루틴</span>
+        </button>
+        <button class="tab-button" onclick="showRoutine('night', this)">
+            <img src="{{ url_for('static', filename='images/night_icon.png') }}" alt="Night Routine">
+            <span>나이트 루틴</span>
+        </button>
+    </div>
+
+    <!-- 모닝 루틴 -->
+    {% if recommendations and recommendations.morning_routine %}
+    <div id="morning" class="routine-content">
+        <div class="morning-routine-section">
+            <img src="{{ url_for('static', filename='images/morning_line.png') }}" class="morning_line_img">
+            <div class="steps-container">
+                {% for step in recommendations.morning_routine %}
+                <div class="step-card">
+                    <div class="step-td">
+                        <div class="step-title">{{ step.step_title }}</div>
+                        <div class="step-description">{{ step.step_description }}</div>
+                    </div>
+                    {% if step.primary_recommendation %}
+                    <div class="primary-product-card">
+                        <div class="product-content">
+                            <div class="product-image-container">
+                                {% if step.primary_recommendation.image_url %}
+                                <img src="{{ step.primary_recommendation.image_url }}" alt="{{ step.primary_recommendation.name }}" class="product-image" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no_image.png') }}';">
+                                {% else %}
+                                <div class="product-image-placeholder"><span>이미지 없음</span></div>
+                                {% endif %}
+                                <div class="product-rank">{{ step.primary_recommendation.rank }}위</div>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-brand">{{ step.primary_recommendation.brand }}</div>
+                                <div class="product-name">{{ step.primary_recommendation.name }}</div>
+                                {% if step.primary_recommendation.product_url %}
+                                <a href="{{ step.primary_recommendation.product_url }}" target="_blank" class="product-link">👀</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if step.alternatives %}
+                    <details class="alternatives-accordion">
+                        <summary>다른 좋은 제품들도 있어요</summary>
+                        <div class="alternatives-list">
+                            {% for alt_product in step.alternatives %}
+                            <div class="alternative-item">
+                                {% if alt_product.image_url %}
+                                <img src="{{ alt_product.image_url }}" alt="{{ alt_product.name }}" class="alternative-image" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no_image.png') }}';">
+                                {% else %}
+                                <div class="alternative-image-placeholder"><span>이미지 없음</span></div>
+                                {% endif %}
+                                <div class="alternative-info">
+                                    <div class="alternative-brand">{{ alt_product.brand }}</div>
+                                    <div class="alternative-name">{{ alt_product.name }}</div>
+                                    <div class="alternative-rank">랭킹 {{ alt_product.rank }}위</div>
+                                </div>
+                                {% if alt_product.product_url %}
+                                <a href="{{ alt_product.product_url }}" target="_blank" class="product-link small">👀</a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 나이트 루틴 -->
+    {% if recommendations and recommendations.night_routine %}
+    <div id="night" class="routine-content" style="display:none">
+        <div class="night-routine-section">
+            <img src="{{ url_for('static', filename='images/night_line.png') }}" class="night_line_img">
+            <div class="steps-container">
+                {% for step in recommendations.night_routine %}
+                <div class="step-card night">
+                    <div class="step-td night">
+                        <div class="step-title night">{{ step.step_title }}</div>
+                        <div class="step-description night">{{ step.step_description }}</div>
+                    </div>
+                    {% if step.primary_recommendation %}
+                    <div class="primary-product-card night">                        
+                        <div class="product-content night">
+                            <div class="product-image-container night">
+                                {% if step.primary_recommendation.image_url %}
+                                <img src="{{ step.primary_recommendation.image_url }}" alt="{{ step.primary_recommendation.name }}" class="product-image" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no_image.png') }}';">
+                                {% else %}
+                                <div class="product-image-placeholder"><span>이미지 없음</span></div>
+                                {% endif %}
+                                <div class="product-rank">{{ step.primary_recommendation.rank }}위</div>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-brand">{{ step.primary_recommendation.brand }}</div>
+                                <div class="product-name">{{ step.primary_recommendation.name }}</div>
+                                {% if step.primary_recommendation.product_url %}
+                                <a href="{{ step.primary_recommendation.product_url }}" target="_blank" class="product-link">👀</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if step.alternatives %}
+                    <details class="alternatives-accordion">
+                        <summary>다른 좋은 제품들도 있어요</summary>
+                        <div class="alternatives-list">
+                            {% for alt_product in step.alternatives %}
+                            <div class="alternative-item">
+                                {% if alt_product.image_url %}
+                                <img src="{{ alt_product.image_url }}" alt="{{ alt_product.name }}" class="alternative-image" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no_image.png') }}';">
+                                {% else %}
+                                <div class="alternative-image-placeholder"><span>이미지 없음</span></div>
+                                {% endif %}
+                                <div class="alternative-info">
+                                    <div class="alternative-brand">{{ alt_product.brand }}</div>
+                                    <div class="alternative-name">{{ alt_product.name }}</div>
+                                    <div class="alternative-rank">랭킹 {{ alt_product.rank }}위</div>
+                                </div>
+                                {% if alt_product.product_url %}
+                                <a href="{{ alt_product.product_url }}" target="_blank" class="product-link small">👀</a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- AI 분석 결과 모달 -->
+<div id="resultModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <div class="user-info-card">
+            <h3>AI 피부 분석 결과</h3>
+            {% if recommendations and recommendations.user_info %}
+            <p><strong>{{ recommendations.user_info.username }}</strong>님의 분석 결과입니다.</p>
+            <ul>
+                <li><strong>피부 타입:</strong> {{ recommendations.user_info.skin_type }}</li>
+                <li>
+                    <strong>주요 고민:</strong> 
+                    {% if recommendations.user_info.concerns %}
+                        {% for concern in recommendations.user_info.concerns %}
+                            {{ concern.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        특별한 고민 없음
+                    {% endif %}
+                </li>
+                <li>
+                    <strong>분석 시점 계절:</strong> 
+                    {% if recommendations.user_info.season == 'summer' %} 여름
+                    {% elif recommendations.user_info.season == 'winter' %} 겨울
+                    {% else %} 환절기
+                    {% endif %}
+                </li>
+            </ul>
+            <div class="result-button-container" style="margin-top: 20px;">
+                 <a href="{{ url_for('analysis') }}" class="result-button">다시 테스트하기</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 기본으로 모닝 루틴을 보여줍니다.
+    showRoutine('morning', document.querySelector('.tab-button.active'));
+
+    // 모달 관련 변수
+    var modal = document.getElementById("resultModal");
+    var btn = document.getElementById("showResultModalBtn");
+    var span = document.getElementsByClassName("close-button")[0];
+
+    // 모달 열기
+    btn.onclick = function() {
+        modal.style.display = "block";
+    }
+
+    // 닫기 버튼으로 모달 닫기
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    // 모달 바깥 영역 클릭 시 닫기
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+});
+
+function showRoutine(routineName, elmnt) {
+    var i, routineContent, tabButtons;
+    routineContent = document.getElementsByClassName("routine-content");
+    for (i = 0; i < routineContent.length; i++) {
+        routineContent[i].style.display = "none";
+    }
+
+    tabButtons = document.getElementsByClassName("tab-button");
+    for (i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove("active");
+    }
+
+    document.getElementById(routineName).style.display = "block";
+    if(elmnt) {
+        elmnt.classList.add("active");
+    }
+
+    const mainContent = document.querySelector('main.centered-content');
+    if (routineName === 'night') {
+        mainContent.style.backgroundColor = '#221A46';
+        mainContent.classList.add('night-theme');
+    } else {
+        mainContent.style.backgroundColor = '#FFFFF8';
+        mainContent.classList.remove('night-theme');
+    }
+}
+</script>
+{% endblock %}
